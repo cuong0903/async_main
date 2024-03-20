@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:intl/intl.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+
 import 'article_model.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -13,271 +14,317 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<Article> articles = [];
-  bool isLoading = true;
-  bool hasError = false;
-
-  @override
-  void initState() {
-    super.initState();
-    fetchArticles();
-  }
-
-  Future<void> fetchArticles() async {
-    try {
-      const url =
-          'https://newsapi.org/v2/everything?q=tesla&from=2024-02-13&sortBy=publishedAt&apiKey=08e12b5dc8d04a9286441af8d372fcae';
-      final res = await http.get(Uri.parse(url));
-      final body = json.decode(res.body) as Map<String, dynamic>;
-
-      if (body['status'] == 'ok') {
-        articles = List<Article>.from(
-          body['articles'].map(
-            (article) => Article.fromJson(article),
-          ),
-        );
-      } else {
-        hasError = true;
-        // Handle error here
-      }
-    } catch (e) {
-      hasError = true;
-      // Handle error here
-    }
-
-    setState(() {
-      isLoading = false;
-    });
-  }
+  String _selectedCategory = 'All';
+  String _searchQuery = '';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Explore'),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-      ),
-      body: Column(
-        children: [
-          const Padding(
-          padding: EdgeInsets.all(8.0),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: 'Search for articles',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(6.0)),
-                borderSide: BorderSide(color: Colors.grey),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(6.0)),
-                borderSide: BorderSide(color: Colors.blue),
-              ),
-              prefixIcon: Icon(Icons.search),
-            ),
-          ),
-        ),
-
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                CategoryChip(label: 'All', isSelected: true),
-                CategoryChip(label: 'Politics'),
-                CategoryChip(label: 'Sports'),
-                CategoryChip(label: 'Health'),
-              ],
-            ),
-          ),
-          Expanded(
-            child: isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : hasError
-                    ? const Center(child: Text('Đã xảy ra lỗi khi tải bài báo'))
-                    : RefreshIndicator(
-                        onRefresh: () async {
-                          await fetchArticles();
-                        },
-                        child: ListView.builder(
-                          itemCount: articles.length,
-                          itemBuilder: (context, index) {
-                            return GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ArticleDetailsScreen(
-                                      article: articles[index],
-                                    ),
-                                  ),
-                                );
-                              },
-                              child: ArticleWidget(
-                                article: articles[index],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class CategoryChip extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-
-  const CategoryChip({
-    Key? key,
-    required this.label,
-    this.isSelected = false,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Chip(
-      label: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? Colors.white : Colors.black,
-        ),
-      ),
-      backgroundColor: isSelected ? Colors.black : Colors.white,
-    );
-  }
-}
-class ArticleWidget extends StatelessWidget {
-  final Article article;
-
-  const ArticleWidget({
-    Key? key,
-    required this.article,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-      padding: const EdgeInsets.all(8.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.5),
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.only(left: 16.0),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CachedNetworkImage(
-                imageUrl: article.urlToImage,
-                placeholder: (context, url) => CircularProgressIndicator(),
-                errorWidget: (context, url, error) => Icon(Icons.error),
-                imageBuilder: (context, imageProvider) => Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    image: DecorationImage(
-                      image: imageProvider,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+              Text(
+                DateFormat('EEE, dd\'th\' MMMM yyyy').format(DateTime.now()),
+                style: TextStyle(
+                  fontSize: 16,
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      article.title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                    'By ${article.source}',
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Text(
-                          '${calculateTimeDifference(article.publishedAt)} ago',
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${article.category}',
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${formatPublishedDateTime(article.publishedAt)}',
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                  ],
+              const SizedBox(height: 4),
+              Text(
+                'Explore',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
                 ),
+              ),
+              const SizedBox(height: 24),
+              Container(
+                margin: const EdgeInsets.only(right: 16.0),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16.0),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    fillColor: Colors.grey.shade300,
+                    filled: true,
+                    border: InputBorder.none,
+                    prefixIcon: const Icon(Icons.search),
+                    hintText: 'Search for article',
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value.trim();
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                height: 40,
+                child: CategoriesBar(
+                  onCategorySelected: (category) {
+                    setState(() {
+                      _selectedCategory = category;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(height: 24),
+              Expanded(
+                child: ArticleList(category: _selectedCategory, searchQuery: _searchQuery),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
+}
 
-  String calculateTimeDifference(String publishedAt) {
-    final DateTime now = DateTime.now();
-    final DateTime publicationTime = DateTime.parse(publishedAt);
-    final Duration difference = now.difference(publicationTime);
+class CategoriesBar extends StatefulWidget {
+  final Function(String) onCategorySelected;
 
-    if (difference.inDays > 0) {
-      return '${difference.inDays}d';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m';
-    } else {
-      return 'Now';
-    }
-  }
+  const CategoriesBar({Key? key, required this.onCategorySelected}) : super(key: key);
 
-  String formatPublishedDateTime(String publishedAt) {
-    final DateTime dateTime = DateTime.parse(publishedAt);
-    final String formattedDate = DateFormat.yMMMMd().add_jm().format(dateTime);
-    return formattedDate;
+  @override
+  State<CategoriesBar> createState() => _CategoriesBarState();
+}
+class _CategoriesBarState extends State<CategoriesBar> {
+  List<String> categories = const [
+    'All',
+    'Politics',
+    'Sports',
+    'Health',
+    'Music',
+    'Tech'
+  ];
+
+  int currentCategory = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      itemCount: categories.length,
+      itemBuilder: (context, index) {
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              currentCategory = index; // Cập nhật chỉ số của danh mục hiện tại
+            });
+            widget.onCategorySelected(categories[index]); // Gọi hàm callback để thông báo danh mục được chọn
+          },
+          child: Container(
+            margin: const EdgeInsets.only(right: 8.0),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            decoration: BoxDecoration(
+              color: currentCategory == index ? Colors.black : Colors.white,
+              border: Border.all(),
+              borderRadius: BorderRadius.circular(16.0),
+            ),
+            child: Center(
+              child: Text(
+                categories[index],
+                style: TextStyle(
+                  color: currentCategory == index ? Colors.white : Colors.black,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
+
+
+class ArticleList extends StatelessWidget {
+  final String category;
+  final String searchQuery;
+
+  const ArticleList({Key? key, required this.category, required this.searchQuery}) : super(key: key);
+
+  List<Article> _filterArticlesByQuery(List<Article> articles, String query) {
+    if (query.isEmpty) {
+      return articles;
+    }
+
+    final lowercaseQuery = query.toLowerCase();
+    return articles.where((article) {
+      final titleMatch = article.title.toLowerCase().contains(lowercaseQuery);
+      final descriptionMatch = article.description.toLowerCase().contains(lowercaseQuery);
+      final categoryMatch = article.category.toLowerCase().contains(lowercaseQuery); // Thêm điều kiện tìm kiếm trong category
+      return titleMatch || descriptionMatch || categoryMatch;
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<Article>>(
+      future: _loadArticlesByCategory(category),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(
+            child: CircularProgressIndicator(),
+          );
+        } else if (snapshot.hasError) {
+          return Center(
+            child: Text('Error: ${snapshot.error}'),
+          );
+        } else if (snapshot.hasData) {
+          final filteredArticles = _filterArticlesByQuery(snapshot.data!, searchQuery);
+          return ListView.builder(
+            itemCount: filteredArticles.length,
+            itemBuilder: (context, index) {
+              final article = filteredArticles[index];
+              return ArticleTile(article: article);
+            },
+          );
+        } else {
+          return Center(
+            child: Text('No articles available'),
+          );
+        }
+      },
+    );
+  }
+
+  Future<List<Article>> _loadArticlesByCategory(String category) async {
+    String url = 'https://newsapi.org/v2/top-headlines?country=us';
+    if (category != 'All') {
+      url += '&category=$category';
+    }
+    url += '&q=${searchQuery.trim()}';
+    url += '&apiKey=08e12b5dc8d04a9286441af8d372fcae';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        final List<dynamic> articles = data['articles'];
+        final List<Article> filteredArticles = articles
+            .map((articleJson) => Article.fromJson(articleJson))
+            .toList();
+        return filteredArticles;
+      } else {
+        throw Exception('Failed to load articles');
+      }
+    } catch (e) {
+      print('An error occurred: $e');
+      return [];
+    }
+  }
+}
+
+class ArticleTile extends StatelessWidget {
+  final Article article;
+
+  const ArticleTile({Key? key, required this.article}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ArticleDetailsScreen(article: article),
+          ),
+        );
+      },
+      child: Container(
+        height: 128,
+        margin: const EdgeInsets.only(bottom: 8.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Image.network(
+                article.urlToImage ?? '',
+                fit: BoxFit.cover,
+                height: 128,
+                width: 128,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 128,
+                    width: 128,
+                    color: Colors.lightBlue,
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 8), // Thêm khoảng cách giữa hình ảnh và thông tin bài báo
+            Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    article.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    'Source: ${article.source}',
+                    style: TextStyle(
+                      color: Colors.grey,
+                    ),
+                  ),
+                  Text(
+                  'By: ${article.author}',
+                  maxLines: 1, // Giới hạn văn bản này trong một dòng
+                  overflow: TextOverflow.ellipsis, // Hiển thị dấu "..." nếu văn bản vượt quá kích thước
+                  style: TextStyle(
+                    color: Colors.grey,
+                  ),
+                ),
+
+                  Row(
+                    children: [
+                      Text(
+                        '${article.category}',
+                        style: TextStyle(
+                          color: Colors.grey,
+                        ),
+                      ),
+                      Spacer(), // Sử dụng Spacer để tạo khoảng trống giữa các widget
+                      Text(
+                        '${article.publishedAt.substring(0, 10)}',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
 
 
 
@@ -297,40 +344,30 @@ class ArticleDetailsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (article.urlToImage != null && article.urlToImage.isNotEmpty)
-              CachedNetworkImage(
-                imageUrl: article.urlToImage,
-                placeholder: (context, url) => CircularProgressIndicator(),
-                errorWidget: (context, url, error) => Icon(Icons.error),
-                imageBuilder: (context, imageProvider) => Image.network(
-                  article.urlToImage!,
-                  width: double.infinity,
-                  height: 200,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    print('Error loading image: $error');
-                    return Icon(Icons.error);
-                  },
-                ),
+            Image.network(
+                article.urlToImage ?? '',
+                fit: BoxFit.cover,
+                height: 400,
+                width: 1800,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 128,
+                    width: 128,
+                    color: Colors.lightBlue,
+                  );
+                },
               ),
-            const SizedBox(height: 16.0),
             Text(
               article.title,
-              style: const TextStyle(
+              style: TextStyle(
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
-                fontSize: 18.0,
               ),
             ),
-            const SizedBox(height: 8.0),
+            const SizedBox(height: 8),
             Row(
               children: [
-                Text(
-                  article.publishedAt.substring(0, 10),
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 12,
-                  ),
-                ),
+                
                 const SizedBox(width: 8),
                 Text(
                   'By ${article.source}',
@@ -341,10 +378,10 @@ class ArticleDetailsScreen extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16.0),
+            const SizedBox(height: 16),
             Text(
-              article.content,
-              style: const TextStyle(fontSize: 16.0),
+              article.content ?? '',
+              style: const TextStyle(fontSize: 16),
             ),
           ],
         ),
