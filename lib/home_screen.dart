@@ -194,32 +194,39 @@ class ArticleList extends StatelessWidget {
   }
 
   Future<List<Article>> _loadArticlesByCategory(String category) async {
-    String url = 'https://newsapi.org/v2/top-headlines?country=us';
-    if (category != 'All') {
-      url += '&category=$category';
-    }
-    url += '&q=${searchQuery.trim()}';
-    url += '&apiKey=08e12b5dc8d04a9286441af8d372fcae';
+  String url = 'https://newsapi.org/v2/everything?q=tesla&from=2024-02-20&sortBy=publishedAt&apiKey=def080fe70e24dbc9017f6c90d1d61f7';
+  
+  // Thêm danh mục vào URL nếu danh mục không phải là "All"
+  if (category != 'All') {
+    url += '&category=$category';
+  }
+  
+  // Thêm từ khóa tìm kiếm vào URL nếu có
+  if (searchQuery.isNotEmpty) {
+    url += '&q=${Uri.encodeComponent(searchQuery.trim())}';
+  }
+  
+  try {
+    final response = await http.get(Uri.parse(url));
 
-    try {
-      final response = await http.get(Uri.parse(url));
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        final List<dynamic> articles = data['articles'];
-        final List<Article> filteredArticles = articles
-            .map((articleJson) => Article.fromJson(articleJson))
-            .toList();
-        return filteredArticles;
-      } else {
-        throw Exception('Failed to load articles');
-      }
-    } catch (e) {
-      print('An error occurred: $e');
-      return [];
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+      final List<dynamic> articles = data['articles'];
+      final List<Article> filteredArticles = articles
+          .map((articleJson) => Article.fromJson(articleJson))
+          .toList();
+      return filteredArticles;
+    } else {
+      throw Exception('Failed to load articles');
     }
+  } catch (e) {
+    print('An error occurred: $e');
+    return [];
   }
 }
+
+}
+
 
 class ArticleTile extends StatelessWidget {
   final Article article;
@@ -241,7 +248,6 @@ class ArticleTile extends StatelessWidget {
         height: 128,
         margin: const EdgeInsets.only(bottom: 8.0),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               decoration: BoxDecoration(
@@ -293,7 +299,6 @@ class ArticleTile extends StatelessWidget {
                     color: Colors.grey,
                   ),
                 ),
-
                   Row(
                     children: [
                       Text(
@@ -316,16 +321,12 @@ class ArticleTile extends StatelessWidget {
               ),
             ),
           ),
-
           ],
         ),
       ),
     );
   }
 }
-
-
-
 
 
 class ArticleDetailsScreen extends StatelessWidget {
@@ -367,7 +368,13 @@ class ArticleDetailsScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                
+                Text(
+                  'Published At: ${article.publishedAt.substring(0, 10)}',
+                  style: const TextStyle(
+                    color: Colors.grey,
+                    fontSize: 12,
+                  ),
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'By ${article.source}',
